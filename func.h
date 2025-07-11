@@ -55,7 +55,7 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     if (!status) {
         char buffer[512];
         glGetShaderInfoLog(shader, 512, NULL, buffer);
-        fprintf(stderr, "Shader compilation for [%s] failed: %s\n", filename, buffer);
+        fprintf(stderr, "Shader compilation for [%s] failed:\n\n%s\n", filename, buffer);
         exit(1);
     }
     

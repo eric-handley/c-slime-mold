@@ -16,14 +16,15 @@
 
 typedef GLuint uint;
 typedef struct Settings_T {
-    uint32_t n_agents;          
-    uint32_t n_species;         
-    uint32_t species_colours[16];
-    float    speed;             
-    float    turn_factor;       
-    float    sample_angle;      
-    uint32_t sample_dist;       
-    uint32_t verbose;           
+    uint32_t n_agents;            // offset 0
+    uint32_t n_species;           // offset 4
+    uint32_t padding[2];          // offset 8, 12 (pad to 16-byte boundary)
+    uint32_t species_colours[16]; // offset 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76
+    float    speed;               // offset 80
+    float    turn_factor;         // offset 84
+    float    sample_angle;        // offset 88
+    uint32_t sample_dist;         // offset 92
+    uint32_t verbose;             // offset 96
 } Settings_T;
 
 Settings_T* Settings;
