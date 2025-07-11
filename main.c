@@ -9,7 +9,8 @@ Settings_T* Settings = &(Settings_T){
     .n_species       = 1,  // Max 16 species and colours
     .species_colours = {0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF}, 
     .speed           = 1,
-    .turn_factor     = 0.01,
+    .turn_randomness = 0.05 * M_PI,
+    .turn_speed      = 0.01 * M_PI,
     .sample_angle    = 0.5 * M_PI,
     .sample_dist     = 5,
     .verbose         = false
@@ -52,32 +53,34 @@ void setup_agents() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * Settings->n_agents, NULL, GL_DYNAMIC_DRAW); 
 }
 
-void* input_thread(void* arg) {
-    GLFWwindow* window = (GLFWwindow*)arg;
-    while(!glfwWindowShouldClose(window)) {
-        if (key_pressed(GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GL_TRUE);
-        if (key_pressed(GLFW_KEY_UP)) {
-            Settings->speed += 0.01;
-            update_shared_settings();
-        }
-        if (key_pressed(GLFW_KEY_DOWN)) {
-            if (Settings->speed > 0) {
-                Settings->speed -= 0.01;
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+        switch(key) {
+            case GLFW_KEY_ESCAPE:
+                glfwSetWindowShouldClose(window, GL_TRUE);
+                break;
+            case GLFW_KEY_UP:
+                Settings->speed += 0.01;
                 update_shared_settings();
-            }
-        }
-        if (key_pressed(GLFW_KEY_RIGHT)) {
-            Settings->turn_factor += 0.001;
-            update_shared_settings();
-        }
-        if (key_pressed(GLFW_KEY_LEFT)) {
-            if (Settings->turn_factor > 0) {
-                Settings->turn_factor -= 0.001;
+                break;
+            case GLFW_KEY_DOWN:
+                if (Settings->speed > 0) {
+                    Settings->speed -= 0.01;
+                    update_shared_settings();
+                }
+                break;
+            case GLFW_KEY_RIGHT:
+                Settings->turn_randomness += 0.01;
                 update_shared_settings();
-            }
+                break;
+            case GLFW_KEY_LEFT:
+                if (Settings->turn_randomness > 0) {
+                    Settings->turn_randomness -= 0.01;
+                    update_shared_settings();
+                }
+                break;
         }
     }
-    return NULL;
 }
 
 int main(int argc, char* argv[]) {
@@ -85,8 +88,8 @@ int main(int argc, char* argv[]) {
 
     pthread_t clock_thread_idx, input_thread_idx;
     pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
-    pthread_create(&input_thread_idx, NULL, input_thread, window);
 
+    glfwSetKeyCallback(window, key_callback);
     configure_shared_settings();
     setup_agents();
     setup_quad();
