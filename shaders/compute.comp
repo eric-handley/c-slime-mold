@@ -3,6 +3,10 @@
 #define PI 3.14159265359
 #define LOCAL_SIZE 32
 
+#define LEFT   -1
+#define CENTER  0
+#define RIGHT   1
+
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
 	
 layout (rgba32f, binding = 0) uniform image2D screenTexture;
@@ -20,8 +24,13 @@ layout(std430, binding = 0) buffer AgentBuffer {
 };
 
 layout(std140, binding = 0) uniform Settings {
-    float speed;
     uint  numAgents;
+    uint  numSpecies;
+    uvec4 speciesColours[4]; // For padding reasons cannot be uint[8]
+    float speed;
+    float turnFactor;
+    float sampleAngle;
+    uint  sampleDist;
     uint  verbose;
 };
 
@@ -49,46 +58,62 @@ float pcg_next(inout uint state, bool angle_normalize) {
     return float(word) / 4294967295.0;
 }
 
+vec4 rgba(uint hex) {
+    return vec4(uvec3(hex >> 16u, hex >> 8u, hex) & 0xFFu, 255) / 255.0;
+}
+
+vec4 getSpeciesColor(uint i) {
+    uint vec4Index = i / 4;        // Which vec4 (0, 1)
+    uint component = i % 4;        // Which component (0, 1)
+    return rgba(speciesColours[vec4Index][component]);
+}
+
+int sample_points(uint agentID) {
+    return CENTER;
+}
+
 void main() {
-    uint agent_id = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x);
-    if (agent_id >= numAgents) return;
+    uint agentID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x);
+    if (agentID >= numAgents) return;
     
-    ivec2 texelCoord = ivec2(agents[agent_id].x, agents[agent_id].y);
+    ivec2 texelCoord = ivec2(agents[agentID].x, agents[agentID].y);
     vec2 texSize = imageSize(screenTexture);
-    uint species = agents[agent_id].species;
-    vec4 colour = vec4(float(species == 0), float(species == 1), float(species == 2), 1.0);
-    uint rng = pcg_state(agent_id + frameNumber * 7919u); // Large prime to scramble frame correlation (maybe?)
+    uint species = agents[agentID].species;
+    vec4 colour = getSpeciesColor(species);
+    uint rng = pcg_state(agentID + frameNumber * 7919u); // Large prime to scramble frame correlation (maybe?)
 
     if (frameNumber == 0) {
         float rx = pcg_next(rng, false) * float(texSize.x);
         float ry = pcg_next(rng, false) * float(texSize.y);
         float rangle = pcg_next(rng, true);
-        uint rspecies = uint(floor(pcg_next(rng, false) * 3));
+        uint rspecies = agentID % numSpecies;
 
-        agents[agent_id].x = rx;
-        agents[agent_id].y = ry;
-        agents[agent_id].angle = rangle;
-        agents[agent_id].species = rspecies;
+        agents[agentID].x = rx;
+        agents[agentID].y = ry;
+        agents[agentID].angle = rangle;
+        agents[agentID].species = rspecies;
         return;
     }
     
-    agents[agent_id].angle += 0.01 * pcg_next(rng, true);
-    agents[agent_id].x += speed * cos(agents[agent_id].angle);
-    agents[agent_id].y += speed * sin(agents[agent_id].angle);
+    agents[agentID].x += speed * cos(agents[agentID].angle);
+    agents[agentID].y += speed * sin(agents[agentID].angle);
 
-    if (agents[agent_id].x >= texSize.x) {
-        agents[agent_id].x = 0;
+    if (agents[agentID].x >= texSize.x) {
+        agents[agentID].x = 0;
     }
-    if (agents[agent_id].x < 0) {
-        agents[agent_id].x = texSize.x - 1;
+    if (agents[agentID].x < 0) {
+        agents[agentID].x = texSize.x - 1;
     }
-    if (agents[agent_id].y >= texSize.y) {
-        agents[agent_id].y = 0;
+    if (agents[agentID].y >= texSize.y) {
+        agents[agentID].y = 0;
     }
-    if (agents[agent_id].y < 0) {
-        agents[agent_id].y = texSize.y - 1;
+    if (agents[agentID].y < 0) {
+        agents[agentID].y = texSize.y - 1;
     }
     
+    // uint turnDirection = sample_points(agentID);
+    agents[agentID].angle += turnFactor * pcg_next(rng, true);
+
     vec4 white = vec4(1,1,1,1);
     imageStore(screenTexture, texelCoord, colour);
 }

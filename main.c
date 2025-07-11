@@ -1,13 +1,18 @@
 #include "main.h"
 
-#define SCALE_FACTOR 0.25
+#define SCALE_FACTOR 0.1
 const uint TEXTURE_WIDTH  = 1920 * SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * SCALE_FACTOR;
 
 Settings_T* Settings = &(Settings_T){
-    .speed    = 0.5,
-    .n_agents = 100,
-    .verbose  = false
+    .n_agents        = 10,
+    .n_species       = 1,  // Max 16 species and colours
+    .species_colours = {0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF}, 
+    .speed           = 1,
+    .turn_factor     = 0.01,
+    .sample_angle    = 0.5 * M_PI,
+    .sample_dist     = 5,
+    .verbose         = false
 };
 
 GLuint agentsBO;
@@ -47,15 +52,44 @@ void setup_agents() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * Settings->n_agents, NULL, GL_DYNAMIC_DRAW); 
 }
 
+void* input_thread(void* arg) {
+    GLFWwindow* window = (GLFWwindow*)arg;
+    while(!glfwWindowShouldClose(window)) {
+        if (key_pressed(GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GL_TRUE);
+        if (key_pressed(GLFW_KEY_UP)) {
+            Settings->speed += 0.01;
+            update_shared_settings();
+        }
+        if (key_pressed(GLFW_KEY_DOWN)) {
+            if (Settings->speed > 0) {
+                Settings->speed -= 0.01;
+                update_shared_settings();
+            }
+        }
+        if (key_pressed(GLFW_KEY_RIGHT)) {
+            Settings->turn_factor += 0.001;
+            update_shared_settings();
+        }
+        if (key_pressed(GLFW_KEY_LEFT)) {
+            if (Settings->turn_factor > 0) {
+                Settings->turn_factor -= 0.001;
+                update_shared_settings();
+            }
+        }
+    }
+    return NULL;
+}
+
 int main(int argc, char* argv[]) {
     GLFWwindow* window = init_window(true, false);
+
+    pthread_t clock_thread_idx, input_thread_idx;
+    pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
+    pthread_create(&input_thread_idx, NULL, input_thread, window);
 
     configure_shared_settings();
     setup_agents();
     setup_quad();
-
-    pthread_t clock_thread_idx;
-    pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
 
     uint update_agents_program = glCreateProgram();
     load_shader_file("shaders/compute.comp", update_agents_program , GL_COMPUTE_SHADER);
@@ -79,16 +113,6 @@ int main(int argc, char* argv[]) {
         int window_width, window_height;
         glfwGetFramebufferSize(window, &window_width, &window_height);
         glGenFramebuffers(1, &FBO);
-
-        if (key_pressed(GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GL_TRUE);
-        if (key_pressed(GLFW_KEY_UP)) {
-            Settings->speed += 0.01;
-            update_shared_settings();
-        }
-        if (key_pressed(GLFW_KEY_DOWN)) {
-            Settings->speed -= 0.01;
-            update_shared_settings();
-        }
         
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);

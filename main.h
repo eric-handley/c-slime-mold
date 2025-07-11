@@ -12,12 +12,18 @@
 #include <math.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <assert.h>
 
 typedef GLuint uint;
 typedef struct Settings_T {
-    float    speed;
-    uint32_t n_agents;
-    uint32_t verbose;
+    uint32_t n_agents;          
+    uint32_t n_species;         
+    uint32_t species_colours[16];
+    float    speed;             
+    float    turn_factor;       
+    float    sample_angle;      
+    uint32_t sample_dist;       
+    uint32_t verbose;           
 } Settings_T;
 
 Settings_T* Settings;
@@ -49,6 +55,7 @@ void* clock_thread(void* arg) {
         clock_t t_now = clock();
         TIME = (double)(t_now - t_start) / CLOCKS_PER_SEC;
     }
+    return NULL;
 }
 
 GLFWwindow* init_window(bool fullscreen, bool disable_60_fps_limit) {
