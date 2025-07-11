@@ -1,18 +1,12 @@
 #version 430 core
 
 #define PI 3.14159265359
-#define SPEED 0.1
 #define LOCAL_SIZE 32
-
-#define SCALE_FACTOR 1.5
-#define TEXTURE_WIDTH  (1920 * SCALE_FACTOR)
-#define TEXTURE_HEIGHT (1080 * SCALE_FACTOR)
 
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
 	
 layout (rgba32f, binding = 0) uniform image2D screenTexture;
 layout (location = 0) uniform uint frameNumber;
-layout (location = 1) uniform uint numAgents;
 
 struct Agent {
     float x;
@@ -21,8 +15,14 @@ struct Agent {
     uint species;
 };
 
-layout(std430, binding = 2) buffer AgentBuffer {
+layout(std430, binding = 0) buffer AgentBuffer {
     Agent agents[];
+};
+
+layout(std140, binding = 0) uniform Settings {
+    float speed;
+    uint  numAgents;
+    uint  verbose;
 };
 
 uint hash(uint x) {
@@ -53,28 +53,28 @@ void main() {
     uint agent_id = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x);
     if (agent_id >= numAgents) return;
     
+    ivec2 texelCoord = ivec2(agents[agent_id].x, agents[agent_id].y);
+    vec2 texSize = imageSize(screenTexture);
     uint species = agents[agent_id].species;
+    vec4 colour = vec4(float(species == 0), float(species == 1), float(species == 2), 1.0);
     uint rng = pcg_state(agent_id + frameNumber * 7919u); // Large prime to scramble frame correlation (maybe?)
 
-    if (frameNumber == 0) {        
-        float rx = pcg_next(rng, false) * float(TEXTURE_WIDTH);
-        float ry = pcg_next(rng, false) * float(TEXTURE_HEIGHT);
+    if (frameNumber == 0) {
+        float rx = pcg_next(rng, false) * float(texSize.x);
+        float ry = pcg_next(rng, false) * float(texSize.y);
         float rangle = pcg_next(rng, true);
-        species = uint(pcg_next(rng, false) * 3);
+        uint rspecies = uint(floor(pcg_next(rng, false) * 3));
 
         agents[agent_id].x = rx;
         agents[agent_id].y = ry;
         agents[agent_id].angle = rangle;
-        agents[agent_id].species = species;
+        agents[agent_id].species = rspecies;
         return;
     }
     
-    ivec2 texSize = imageSize(screenTexture);
-    
     agents[agent_id].angle += 0.01 * pcg_next(rng, true);
-
-    agents[agent_id].x += SPEED * cos(agents[agent_id].angle);
-    agents[agent_id].y += SPEED * sin(agents[agent_id].angle);
+    agents[agent_id].x += speed * cos(agents[agent_id].angle);
+    agents[agent_id].y += speed * sin(agents[agent_id].angle);
 
     if (agents[agent_id].x >= texSize.x) {
         agents[agent_id].x = 0;
@@ -88,9 +88,7 @@ void main() {
     if (agents[agent_id].y < 0) {
         agents[agent_id].y = texSize.y - 1;
     }
-
-    ivec2 texelCoord = ivec2(agents[agent_id].x, agents[agent_id].y);
     
-    vec4 white = vec4(float(species == 0), float(species == 1), float(species == 2), 1.0);
-    imageStore(screenTexture, texelCoord, white);
+    vec4 white = vec4(1,1,1,1);
+    imageStore(screenTexture, texelCoord, colour);
 }

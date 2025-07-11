@@ -1,15 +1,18 @@
 #include "main.h"
 
-#define N_AGENTS 100000
-#define SCALE_FACTOR 1.5
-
+#define SCALE_FACTOR 0.25
 const uint TEXTURE_WIDTH  = 1920 * SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * SCALE_FACTOR;
-const uint N_PIXELS = TEXTURE_WIDTH * TEXTURE_HEIGHT;
 
-uint quadVAO, quadVBO;
-uint FBO;
-uint agentsBO[N_AGENTS];
+Settings_T* Settings = &(Settings_T){
+    .speed    = 0.5,
+    .n_agents = 100,
+    .verbose  = false
+};
+
+GLuint agentsBO;
+GLuint quadVAO, quadVBO;
+GLuint FBO;
 
 typedef struct Agent {
     float x;
@@ -31,92 +34,96 @@ void setup_quad() {
     glBindVertexArray(quadVAO);
     glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-    glBindVertexArray(quadVAO);
 }
 
-void setup_agents(uint n) {
-    glGenBuffers(1, agentsBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, *agentsBO); 
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * n, NULL, GL_DYNAMIC_DRAW); 
+void setup_agents() {
+    glGenBuffers(1, &agentsBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, agentsBO); 
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * Settings->n_agents, NULL, GL_DYNAMIC_DRAW); 
 }
 
 int main(int argc, char* argv[]) {
-    GLFWwindow* window = init_window(true, true);
+    GLFWwindow* window = init_window(true, false);
+
+    configure_shared_settings();
+    setup_agents();
+    setup_quad();
 
     pthread_t clock_thread_idx;
     pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
 
-    uint update_agents = glCreateProgram();
-    load_shader_file("shaders/compute.comp", update_agents , GL_COMPUTE_SHADER);
-    glLinkProgram(update_agents);
+    uint update_agents_program = glCreateProgram();
+    load_shader_file("shaders/compute.comp", update_agents_program , GL_COMPUTE_SHADER);
+    glLinkProgram(update_agents_program);
 
-    uint post_processing = glCreateProgram();
-    load_shader_file("shaders/quad.vert", post_processing, GL_VERTEX_SHADER);
-    load_shader_file("shaders/quad.frag", post_processing, GL_FRAGMENT_SHADER);
-    glLinkProgram(post_processing);
-    
-    uint screen_texture = create_and_bind_texture(GL_TEXTURE_2D, GL_CLAMP_TO_EDGE, GL_LINEAR);
+    uint post_processing_program = glCreateProgram();
+    load_shader_file("shaders/quad.vert", post_processing_program, GL_VERTEX_SHADER);
+    load_shader_file("shaders/quad.frag", post_processing_program, GL_FRAGMENT_SHADER);
+    glLinkProgram(post_processing_program);
+
+    uint screen_texture = create_and_bind_texture(GL_TEXTURE_2D, GL_CLAMP_TO_EDGE, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    
-    glGenFramebuffers(1, &FBO);
 
-    uint frame_n_location = glGetUniformLocation(update_agents, "frameNumber");
+    uint texture_unif      = glGetUniformLocation(post_processing_program, "screenTexture");
+    uint frame_number_unif = glGetUniformLocation(update_agents_program,   "frameNumber"  );
     uint frame_number = 0;
 
-    uint num_agents_location = glGetUniformLocation(update_agents, "numAgents");
-    glProgramUniform1ui(update_agents, num_agents_location, N_AGENTS);
+    int num_groups_needed = (Settings->n_agents + 1024 - 1) / 1024; // 1024 -> threads per workgroup
 
-    uint post_processing_texture_location = glGetUniformLocation(post_processing, "screenTexture");
-
-    setup_agents(N_AGENTS);
-    int threads_per_group = 10 * 10; 
-    int num_groups_needed = (N_AGENTS + threads_per_group - 1) / threads_per_group; 
-
-    setup_quad();
-    
     while(!glfwWindowShouldClose(window)) {
-        if (key_pressed(GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GL_TRUE);
-        
         int window_width, window_height;
         glfwGetFramebufferSize(window, &window_width, &window_height);
-        
-        glUseProgram(update_agents);
-        glProgramUniform1ui(update_agents, frame_n_location, frame_number);
+        glGenFramebuffers(1, &FBO);
 
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, *agentsBO);
-        glBindImageTexture(0, screen_texture, 0, 0, 0, GL_READ_WRITE, GL_RGBA32F);
-        
-        glDispatchCompute(num_groups_needed, 1, 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        glTextureBarrier(); 
+        if (key_pressed(GLFW_KEY_ESCAPE)) glfwSetWindowShouldClose(window, GL_TRUE);
+        if (key_pressed(GLFW_KEY_UP)) {
+            Settings->speed += 0.01;
+            update_shared_settings();
+        }
+        if (key_pressed(GLFW_KEY_DOWN)) {
+            Settings->speed -= 0.01;
+            update_shared_settings();
+        }
         
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
         glViewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
-        glUseProgram(post_processing);
-
-        glActiveTexture(GL_TEXTURE0);
+        // Fade & blur pixels
+        glUseProgram(post_processing_program);
         glBindTexture(GL_TEXTURE_2D, screen_texture);
-        glUniform1i(post_processing_texture_location, 0);
+        glUniform1i(texture_unif, 0);
 
+        // Draw updated texture to quad
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, window_width, window_height);
         glBindTexture(GL_TEXTURE_2D, screen_texture);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+
+        // Update agent positions and draw
+        glUseProgram(update_agents_program);
+        
+        // Update frame number, bind agent buffer object and screen texture
+        glProgramUniform1ui(update_agents_program, frame_number_unif, frame_number);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, agentsBO);
+        glBindImageTexture(0, screen_texture, 0, 0, 0, GL_READ_WRITE, GL_RGBA32F);
+        
+        glDispatchCompute(num_groups_needed, 1, 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        
         
         glfwSwapBuffers(window);
         glfwPollEvents();
         frame_number += 1;
     }
 
-    cleanup();
+    glfwTerminate();
 }

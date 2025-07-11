@@ -14,12 +14,33 @@
 #include <pthread.h>
 
 typedef GLuint uint;
+typedef struct Settings_T {
+    float    speed;
+    uint32_t n_agents;
+    uint32_t verbose;
+} Settings_T;
+
+Settings_T* Settings;
+
 #include "func.h"
 
 #define sleep(sec) usleep((sec) * (1e6))
 #define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
 
 double TIME;
+GLuint settingsUBO;
+
+void configure_shared_settings() {
+    glGenBuffers(1, &settingsUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Settings_T), Settings, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, settingsUBO);
+}
+
+void update_shared_settings() {
+    glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Settings_T), Settings);
+}
 
 void* clock_thread(void* arg) {
     GLFWwindow* window = (GLFWwindow*)arg;
@@ -59,10 +80,6 @@ GLFWwindow* init_window(bool fullscreen, bool disable_60_fps_limit) {
     while (glGetError() != GL_NO_ERROR) {}
     
     return window;
-}
-
-void cleanup() {
-    glfwTerminate();
 }
 
 #endif
