@@ -1,20 +1,21 @@
 #include "main.h"
 
-#define N_AGENTS 1000
-#define SCALE_FACTOR 0.5
-
-uint quadVAO, quadVBO;
-uint fbo;
-uint agentsBO[N_AGENTS];
+#define N_AGENTS 100000
+#define SCALE_FACTOR 1.5
 
 const uint TEXTURE_WIDTH  = 1920 * SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * SCALE_FACTOR;
 const uint N_PIXELS = TEXTURE_WIDTH * TEXTURE_HEIGHT;
 
+uint quadVAO, quadVBO;
+uint FBO;
+uint agentsBO[N_AGENTS];
+
 typedef struct Agent {
     float x;
     float y;
     float angle;
+    uint32_t species;
 } Agent;
 
 void setup_quad() {
@@ -38,22 +39,10 @@ void setup_quad() {
     glBindVertexArray(quadVAO);
 }
 
-Agent* setup_agents(uint n) {
-    Agent* agents = malloc(sizeof(Agent) * n);
-    srand(TIME);
-    for_range(0, n, i) {
-        agents[i] = (Agent){            
-            rand() % TEXTURE_WIDTH,
-            rand() % TEXTURE_HEIGHT,
-            ((float)rand() / RAND_MAX) * 2.0 * M_PI - M_PI
-        };
-    }
-    
+void setup_agents(uint n) {
     glGenBuffers(1, agentsBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, *agentsBO); 
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * n, agents, GL_DYNAMIC_DRAW); 
-    
-    return agents;
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * n, NULL, GL_DYNAMIC_DRAW); 
 }
 
 int main(int argc, char* argv[]) {
@@ -74,14 +63,19 @@ int main(int argc, char* argv[]) {
     uint screen_texture = create_and_bind_texture(GL_TEXTURE_2D, GL_CLAMP_TO_EDGE, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
     
-    glGenFramebuffers(1, &fbo);
+    glGenFramebuffers(1, &FBO);
 
     uint frame_n_location = glGetUniformLocation(update_agents, "frameNumber");
     uint frame_number = 0;
 
+    uint num_agents_location = glGetUniformLocation(update_agents, "numAgents");
+    glProgramUniform1ui(update_agents, num_agents_location, N_AGENTS);
+
     uint post_processing_texture_location = glGetUniformLocation(post_processing, "screenTexture");
 
-    Agent* agents = setup_agents(N_AGENTS);
+    setup_agents(N_AGENTS);
+    int threads_per_group = 10 * 10; 
+    int num_groups_needed = (N_AGENTS + threads_per_group - 1) / threads_per_group; 
 
     setup_quad();
     
@@ -97,11 +91,11 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, *agentsBO);
         glBindImageTexture(0, screen_texture, 0, 0, 0, GL_READ_WRITE, GL_RGBA32F);
         
-        glDispatchCompute(100, 100, 1);
+        glDispatchCompute(num_groups_needed, 1, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         glTextureBarrier(); 
         
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
         glViewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
