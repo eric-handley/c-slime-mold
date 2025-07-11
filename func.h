@@ -8,12 +8,10 @@
 
 #define key_pressed(key) glfwGetKey(window, key) == GLFW_PRESS
 
-uint create_texture(uint texture_type, uint active_texture, uint wrap_method, uint filtering_method) {
+uint create_and_bind_texture(uint texture_type, uint wrap_method, uint filtering_method) {
     uint tex;
     glGenTextures(1, &tex);
-    glActiveTexture(active_texture);
-    glBindTexture(texture_type, tex);
-
+    glBindTexture(texture_type, tex);  
     glTexParameteri(texture_type, GL_TEXTURE_WRAP_S, wrap_method);
     glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, wrap_method);
     glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, filtering_method);

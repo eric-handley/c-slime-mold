@@ -17,6 +17,7 @@ typedef GLuint uint;
 #include "func.h"
 
 #define sleep(sec) usleep((sec) * (1e6))
+#define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
 
 double TIME;
 
@@ -34,7 +35,7 @@ GLFWwindow* init_window(bool fullscreen, bool disable_60_fps_limit) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
     GLFWwindow* window;
     if (fullscreen) {
@@ -54,7 +55,7 @@ GLFWwindow* init_window(bool fullscreen, bool disable_60_fps_limit) {
     glewExperimental = true;
     glewInit();
     
-    // Clear GLEW initialization errors
+    // Clear any GLEW initialization errors
     while (glGetError() != GL_NO_ERROR) {}
     
     return window;

@@ -3,11 +3,16 @@
 out vec4 FragColor;
 	
 in vec2 TexCoords;
+uniform sampler2D screenTexture;
+
+const float fadeFactor = 0.00025;
 	
-uniform sampler2D tex;
-	
-void main()
-{             
-    vec3 texCol = texture(tex, TexCoords).rgb;      
+void main() {             
+    vec3 texCol = texture(screenTexture, TexCoords).rgb;
+    texCol = vec3(
+        texCol.r - fadeFactor, 
+        texCol.g - fadeFactor, 
+        texCol.b - fadeFactor
+    );
     FragColor = vec4(texCol, 1.0);
 }
