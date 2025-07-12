@@ -32,18 +32,20 @@ Settings_T* Settings;
 
 #include "func.h"
 
+int random_int(int min, int max) {
+    float scale = rand() / (RAND_MAX + 1.0f);
+    return min + (int)(scale * (max - min + 1));
+}
+
+float random_float(float min, float max) {
+    return min + (max - min) * ((float)rand() / RAND_MAX);
+}
+
 #define sleep(sec) usleep((sec) * (1e6))
 #define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
 
 double TIME;
 GLuint settingsUBO;
-
-void configure_shared_settings() {
-    glGenBuffers(1, &settingsUBO);
-    glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(Settings_T), Settings, GL_DYNAMIC_DRAW);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, settingsUBO);
-}
 
 void update_shared_settings() {
     glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);

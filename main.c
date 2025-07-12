@@ -1,28 +1,56 @@
 #include "main.h"
 
-#define SCALE_FACTOR 1.5
+#define SCALE_FACTOR 1
 const uint TEXTURE_WIDTH  = 1920 * SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * SCALE_FACTOR;
 
-Settings_T* Settings = &(Settings_T){
-    .n_agents        = 1000000,
-    .n_species       = 4,  // Max 16 species and colours
-    .species_colours = {0xFF3CAC, 0x784BA0, 0x2B86C5, 0x00FFC6},           // Neon Night  
-    // .species_colours = {0xFF5733, 0xFF8D1A, 0xFFC300, 0xDAF7A6},           // Sunset Heat  
-    // .species_colours = {0x9ADCFF, 0x80B3FF, 0x6886C5, 0x506D84},           // Arctic Drift  
-    // .species_colours = {0x6C5B7B, 0xC06C84, 0xF67280, 0xF8B195},           // Rose Fade  
-    // .species_colours = {0x114B5F, 0x028090, 0xE4FDE1, 0x456990},           // Oceanic Calm  
-    // .species_colours = {0xFFD700, 0xFF8C00, 0xFF4500, 0xDC143C},           // Solar Flare  
-    // .species_colours = {0x1A535C, 0x4ECDC4, 0xF7FFF7, 0xFF6B6B},           // Mint Punch  
-    // .species_colours = {0x222222, 0x555555, 0xAAAAAA, 0xFFFFFF},           // Grayscale Mood  
-    // .species_colours = {0x00FF00, 0xFFFF00, 0xFF00FF},                     // Toxic Pop  
-    .speed           = 1,
-    .turn_randomness = 0.02,
-    .turn_speed      = 0.01,
-    .sample_angle    = 0.4 * M_PI,
-    .sample_dist     = 20,
-    .debug           = false
-};
+void init_settings() {
+    Settings = malloc(sizeof(Settings_T));
+
+    Settings->n_agents = 100000;
+    Settings->n_species = 4;  // Max 16 species & colours
+    
+    uint32_t species_colours[Settings->n_species];
+    for_range(0, Settings->n_species, i) {
+        species_colours[i] = random_int(0x333333, 0xFFFFFF);
+    }
+    
+    // Or set colours manually:
+    // uint32_t species_colours[] = {
+    //     random_int(0x333333, 0xFFFFFF),
+    //     random_int(0x333333, 0xFFFFFF),
+    //     random_int(0x333333, 0xFFFFFF),
+    //     random_int(0x333333, 0xFFFFFF)
+    // };
+    
+    Settings->speed = 1;
+    Settings->turn_randomness = 0.02f;
+    Settings->turn_speed = 0.01f;
+    Settings->sample_angle = 0.4f * (float)M_PI;
+    Settings->sample_dist = 20;
+    Settings->debug = false;
+    
+    memcpy(Settings->species_colours, species_colours, sizeof(species_colours));
+    glGenBuffers(1, &settingsUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Settings_T), Settings, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, settingsUBO);
+}
+
+void randomize_settings() {
+    uint32_t species_colours[Settings->n_species];
+    for_range(0, Settings->n_species, i) {
+        species_colours[i] = random_int(0x333333, 0xFFFFFF);
+    }
+    Settings->speed = random_int(0.2, 3);
+    Settings->turn_randomness = random_float(0.0001, 0.1);
+    Settings->turn_speed = random_float(0.0001, 0.1);
+    Settings->sample_angle = random_float(0.05, 0.5) * (float)M_PI;
+    Settings->sample_dist = random_int(3, 50);
+    
+    memcpy(Settings->species_colours, species_colours, sizeof(species_colours));
+    update_shared_settings();
+}
 
 GLuint agentsBO;
 GLuint quadVAO, quadVBO;
@@ -62,6 +90,17 @@ void setup_agents() {
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_RELEASE) {
+        switch (key)
+        {
+        case GLFW_KEY_SPACE:
+            randomize_settings();
+            break;
+        
+        default:
+            break;
+        }
+    }
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         switch(key) {
             case GLFW_KEY_ESCAPE:
@@ -100,7 +139,7 @@ int main(int argc, char* argv[]) {
     pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
 
     glfwSetKeyCallback(window, key_callback);
-    configure_shared_settings();
+    init_settings();
     setup_agents();
     setup_quad();
 
