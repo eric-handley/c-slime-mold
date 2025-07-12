@@ -38,7 +38,7 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     const char* source_const = source;
     
     uint shader = glCreateShader(shader_type);
-    if (Settings->verbose) printf("Created shader ID: %u, type: %d for file: %s\n", shader, shader_type, filename);
+    if (Settings->debug) printf("Created shader ID: %u, type: %d for file: %s\n", shader, shader_type, filename);
     
     if (shader == 0) {
         printf("Failed to create shader for %s\n", filename);
@@ -50,7 +50,7 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    if (Settings->verbose) printf("Compile status for %s: %d\n", filename, status);
+    if (Settings->debug) printf("Compile status for %s: %d\n", filename, status);
     
     if (!status) {
         char buffer[512];
@@ -59,7 +59,7 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
         exit(1);
     }
     
-    if (Settings->verbose) printf("Attaching shader %u to program %u\n", shader, shader_program);
+    if (Settings->debug) printf("Attaching shader %u to program %u\n", shader, shader_program);
     glAttachShader(shader_program, shader);
     
     // Check if attachment worked

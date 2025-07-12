@@ -3,14 +3,21 @@
 #define PI 3.14159265359
 #define LOCAL_SIZE 32
 
-#define LEFT    1 // In terms of radians
-#define CENTER  0
-#define RIGHT  -1
+#define LEFT   float( 1.0)
+#define CENTER float( 0.0)
+#define RIGHT  float(-1.0)
+
+const ivec2 sampleOffsets[3][3] = {
+    {ivec2(-1,  1), ivec2(0,  1), ivec2(1,  1)},
+    {ivec2(-1,  0), ivec2(0,  0), ivec2(1,  0)},
+    {ivec2(-1, -1), ivec2(0, -1), ivec2(1, -1)}
+};
 
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
-	
+
 layout (rgba32f, binding = 0) uniform image2D screenTexture;
 layout (location = 0) uniform uint frameNumber;
+layout (location = 1) uniform uint time;
 
 struct Agent {
     float x;
@@ -29,10 +36,10 @@ layout(std140, binding = 0) uniform Settings {
     uvec4 speciesColours[4];
     float speed;
     float turnRandomness;
-    float turnFactor;
+    float turnSpeed;
     float sampleAngle;
     uint  sampleDist;
-    uint  verbose;
+    uint  debug;
 };
 
 uint hash(uint x) {
@@ -45,7 +52,7 @@ uint hash(uint x) {
 }
 
 uint pcg_state(uint seed) {
-    return hash(seed + frameNumber);
+    return hash(seed + frameNumber + time);
 }
 
 float pcg_next(inout uint state, bool normalize_minus_one_to_one) {
@@ -74,33 +81,61 @@ vec4 getSpeciesColor(uint i) {
     return rgba(speciesColours[vec4Index][component]);
 }
 
-float sample_along_angle(float angle) {
-    return 100;
+float sample_in_direction(uint agentID, float direction, vec4 speciesColour) {
+    float sampleAngleDirection = agents[agentID].angle + (direction * sampleAngle);
+    ivec2 center = ivec2(
+        agents[agentID].x + int(sampleDist * cos(sampleAngleDirection)),
+        agents[agentID].y + int(sampleDist * sin(sampleAngleDirection)) 
+    );
+
+    if (bool(debug)) imageStore(screenTexture, center, vec4(0,0,1,1));
+
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            ivec2 xy = center + sampleOffsets[i][j];
+            vec4 pixel = imageLoad(screenTexture, xy);   
+
+            vec3 delta = pixel.rgb - speciesColour.rgb;
+            float distance = length(delta); // sqrt(dx^2 + dy^2 + dz^2)
+            sum += 1.0 - distance; // smaller distance → higher similarity
+        }
+    }
+
+    return sum;
 }
 
-float choose_direction(uint agentID) {
-    float lSample = sample_along_angle(sampleAngle * LEFT  ); 
-    float cSample = sample_along_angle(sampleAngle * CENTER);
-    float rSample = sample_along_angle(sampleAngle * RIGHT );
-    float maxSample = max(max(lSample, cSample), rSample);
+float choose_direction(uint agentID, vec4 speciesColour) {
+    float s1 = sample_in_direction(agentID, LEFT,   speciesColour); 
+    float s2 = sample_in_direction(agentID, CENTER, speciesColour);
+    float s3 = sample_in_direction(agentID, RIGHT,  speciesColour);
+    float sMax = max(max(s1, s2), s3); 
 
-    return (LEFT * float(maxSample = lSample) + RIGHT * float(maxSample = rSample));
+    if ((sMax == s1 && sMax == s2) || (sMax == s2 && sMax == s3) || (sMax == s1 && sMax == s2) || (sMax == 0)) {
+        return float(CENTER);
+    }
+    
+    if (s1 == sMax)
+        return float(LEFT);
+    if (s3 == sMax)
+        return float(RIGHT);
+    
+    return float(CENTER);
 }
 
 void main() {
     uint agentID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * (gl_NumWorkGroups.x * gl_WorkGroupSize.x);
     if (agentID >= numAgents) return;
     
-    ivec2 texelCoord = ivec2(agents[agentID].x, agents[agentID].y);
     vec2 texSize = imageSize(screenTexture);
     uint species = agents[agentID].species;
     vec4 colour = getSpeciesColor(species);
-    uint rng = pcg_state(agentID + frameNumber * 7919u); // Large prime to scramble frame correlation (maybe?)
+    uint rng = pcg_state(agentID + frameNumber * 7919u);
 
     if (frameNumber == 0) {
         float rx = pcg_next(rng, false) * float(texSize.x);
         float ry = pcg_next(rng, false) * float(texSize.y);
-        float rangle = pcg_next(rng, true);
+        float rangle = pcg_next(rng, false) * 2 * PI;
         uint rspecies = agentID % numSpecies;
 
         agents[agentID].x = rx;
@@ -112,23 +147,35 @@ void main() {
     
     agents[agentID].x += speed * cos(agents[agentID].angle);
     agents[agentID].y += speed * sin(agents[agentID].angle);
-
+    
     if (agents[agentID].x >= texSize.x) {
-        agents[agentID].x = 0;
-    }
-    if (agents[agentID].x < 0) {
+        agents[agentID].angle = PI - agents[agentID].angle; 
         agents[agentID].x = texSize.x - 1;
     }
-    if (agents[agentID].y >= texSize.y) {
-        agents[agentID].y = 0;
+    if (agents[agentID].x < 0) {
+        agents[agentID].angle = PI - agents[agentID].angle; 
+        agents[agentID].x = 0;
     }
-    if (agents[agentID].y < 0) {
+    if (agents[agentID].y >= texSize.y) {
+        agents[agentID].angle = -1 * agents[agentID].angle; 
         agents[agentID].y = texSize.y - 1;
     }
-    
-    float turnDirection = choose_direction(agentID);
-    agents[agentID].angle += (turnDirection * turnFactor) + (turnRandomness * pcg_next(rng, true));
+    if (agents[agentID].y < 0) {
+        agents[agentID].angle = -1 * agents[agentID].angle; 
+        agents[agentID].y = 0;
+    }
 
-    vec4 white = vec4(1,1,1,1);
+    float direction = choose_direction(agentID, colour);
+
+    
+    ivec2 pixel = ivec2(
+        agents[agentID].x + int(sampleDist * cos(agents[agentID].angle + (direction * sampleAngle))),
+        agents[agentID].y + int(sampleDist * sin(agents[agentID].angle + (direction * sampleAngle))) 
+    );
+
+    if (bool(debug)) imageStore(screenTexture, pixel, vec4(1,0,0,1));
+    
+    agents[agentID].angle += ((direction * turnSpeed) + (turnRandomness * pcg_next(rng, true))) * 2 * PI;
+    ivec2 texelCoord = ivec2(agents[agentID].x, agents[agentID].y);
     imageStore(screenTexture, texelCoord, colour);
 }

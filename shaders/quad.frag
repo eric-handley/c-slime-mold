@@ -15,7 +15,7 @@ const ivec2 offsets[3][3] = {
 
 const float weights[3][3] = {
     {0.25,  0.50,  0.25},
-    {0.50,  1.00,  0.50},
+    {0.50,  0.75,  0.50},
     {0.25,  0.50,  0.25},
 };
 	
@@ -24,17 +24,16 @@ void main() {
     ivec2 center = ivec2(TexCoords * vec2(textureSize(screenTexture, 0)));
 
     float totalWeight = 0;
-    vec3 sum = vec3(0,0,0);
+    vec3 sum = vec3(0, 0, 0);
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             ivec2 xy = center + offsets[i][j];
-            sum += texelFetch(screenTexture, xy, 0).rgb * weights[i][j];
+            sum += texelFetch(screenTexture, xy, 0).rgb * weights[i][j] - vec3(fadeFactor);
             totalWeight += weights[i][j];
         }
     }
 
-    vec3 blurred = sum / totalWeight;
-    vec3 faded = max(blurred - vec3(fadeFactor), 0.0);
+    vec3 outColour = sum / totalWeight;
 
-    FragColor = vec4(faded, 1.0);
+    FragColor = vec4(max(outColour, vec3(0.0)), 1.0);
 }

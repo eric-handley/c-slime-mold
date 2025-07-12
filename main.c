@@ -1,19 +1,27 @@
 #include "main.h"
 
-#define SCALE_FACTOR 0.1
+#define SCALE_FACTOR 1.5
 const uint TEXTURE_WIDTH  = 1920 * SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * SCALE_FACTOR;
 
 Settings_T* Settings = &(Settings_T){
-    .n_agents        = 10,
-    .n_species       = 1,  // Max 16 species and colours
-    .species_colours = {0xFFFFFF, 0xFF0000, 0x00FF00, 0x0000FF}, 
+    .n_agents        = 1000000,
+    .n_species       = 4,  // Max 16 species and colours
+    .species_colours = {0xFF3CAC, 0x784BA0, 0x2B86C5, 0x00FFC6},           // Neon Night  
+    // .species_colours = {0xFF5733, 0xFF8D1A, 0xFFC300, 0xDAF7A6},           // Sunset Heat  
+    // .species_colours = {0x9ADCFF, 0x80B3FF, 0x6886C5, 0x506D84},           // Arctic Drift  
+    // .species_colours = {0x6C5B7B, 0xC06C84, 0xF67280, 0xF8B195},           // Rose Fade  
+    // .species_colours = {0x114B5F, 0x028090, 0xE4FDE1, 0x456990},           // Oceanic Calm  
+    // .species_colours = {0xFFD700, 0xFF8C00, 0xFF4500, 0xDC143C},           // Solar Flare  
+    // .species_colours = {0x1A535C, 0x4ECDC4, 0xF7FFF7, 0xFF6B6B},           // Mint Punch  
+    // .species_colours = {0x222222, 0x555555, 0xAAAAAA, 0xFFFFFF},           // Grayscale Mood  
+    // .species_colours = {0x00FF00, 0xFFFF00, 0xFF00FF},                     // Toxic Pop  
     .speed           = 1,
-    .turn_randomness = 0.05 * M_PI,
-    .turn_speed      = 0.01 * M_PI,
-    .sample_angle    = 0.5 * M_PI,
-    .sample_dist     = 5,
-    .verbose         = false
+    .turn_randomness = 0.02,
+    .turn_speed      = 0.01,
+    .sample_angle    = 0.4 * M_PI,
+    .sample_dist     = 20,
+    .debug           = false
 };
 
 GLuint agentsBO;
@@ -60,23 +68,25 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 glfwSetWindowShouldClose(window, GL_TRUE);
                 break;
             case GLFW_KEY_UP:
-                Settings->speed += 0.01;
+                Settings->speed += 0.1;
                 update_shared_settings();
                 break;
             case GLFW_KEY_DOWN:
                 if (Settings->speed > 0) {
-                    Settings->speed -= 0.01;
+                    Settings->speed -= 0.1;
                     update_shared_settings();
                 }
                 break;
             case GLFW_KEY_RIGHT:
-                Settings->turn_randomness += 0.01;
+                Settings->turn_speed += 0.001;
                 update_shared_settings();
+                if (Settings->debug) printf("turn_speed: %f\n", Settings->turn_speed);
                 break;
             case GLFW_KEY_LEFT:
-                if (Settings->turn_randomness > 0) {
-                    Settings->turn_randomness -= 0.01;
+                if (Settings->turn_speed > 0) {
+                    Settings->turn_speed -= 0.001;
                     update_shared_settings();
+                    if (Settings->debug) printf("turn_speed: %f\n", Settings->turn_speed);
                 }
                 break;
         }
@@ -108,6 +118,7 @@ int main(int argc, char* argv[]) {
 
     uint texture_unif      = glGetUniformLocation(post_processing_program, "screenTexture");
     uint frame_number_unif = glGetUniformLocation(update_agents_program,   "frameNumber"  );
+    uint time_unif         = glGetUniformLocation(update_agents_program,   "time"         );
     uint frame_number = 0;
 
     int num_groups_needed = (Settings->n_agents + 1024 - 1) / 1024; // 1024 -> threads per workgroup
@@ -140,6 +151,7 @@ int main(int argc, char* argv[]) {
         
         // Update frame number, bind agent buffer object and screen texture
         glProgramUniform1ui(update_agents_program, frame_number_unif, frame_number);
+        glProgramUniform1ui(update_agents_program, time_unif, (int)clock());
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, agentsBO);
         glBindImageTexture(0, screen_texture, 0, 0, 0, GL_READ_WRITE, GL_RGBA32F);
         

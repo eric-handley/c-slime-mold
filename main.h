@@ -25,7 +25,7 @@ typedef struct Settings_T {
     float    turn_speed;          // offset 88
     float    sample_angle;        // offset 92
     uint32_t sample_dist;         // offset 96
-    uint32_t verbose;             // offset 100
+    uint32_t debug;               // offset 100
 } Settings_T;
 
 Settings_T* Settings;
