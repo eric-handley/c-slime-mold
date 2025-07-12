@@ -5,7 +5,18 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define sleep(sec) usleep((sec) * (1e6))
+#define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
 #define key_pressed(key) glfwGetKey(window, key) == GLFW_PRESS
+
+int random_int(int min, int max) {
+    float scale = rand() / (RAND_MAX + 1.0f);
+    return min + (int)(scale * (max - min + 1));
+}
+
+float random_float(float min, float max) {
+    return min + (max - min) * ((float)rand() / RAND_MAX);
+}
 
 uint create_and_bind_texture(uint bind_texture_type, uint wrap_method, uint filtering_method) {
     uint tex;
@@ -38,7 +49,6 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     const char* source_const = source;
     
     uint shader = glCreateShader(shader_type);
-    if (Settings->debug) printf("Created shader ID: %u, type: %d for file: %s\n", shader, shader_type, filename);
     
     if (shader == 0) {
         printf("Failed to create shader for %s\n", filename);
@@ -50,7 +60,6 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     
     int status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-    if (Settings->debug) printf("Compile status for %s: %d\n", filename, status);
     
     if (!status) {
         char buffer[512];
@@ -59,7 +68,6 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
         exit(1);
     }
     
-    if (Settings->debug) printf("Attaching shader %u to program %u\n", shader, shader_program);
     glAttachShader(shader_program, shader);
     
     // Check if attachment worked

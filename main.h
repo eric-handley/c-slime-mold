@@ -15,42 +15,10 @@
 #include <assert.h>
 
 typedef GLuint uint;
-typedef struct Settings_T {
-    uint32_t n_agents;            // offset 0
-    uint32_t n_species;           // offset 4
-    uint32_t padding[2];          // offset 8, 12 (pad to 16-byte boundary)
-    uint32_t species_colours[16]; // offset 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76
-    float    speed;               // offset 80
-    float    turn_randomness;     // offset 84
-    float    turn_speed;          // offset 88
-    float    sample_angle;        // offset 92
-    uint32_t sample_dist;         // offset 96
-    uint32_t debug;               // offset 100
-} Settings_T;
-
-Settings_T* Settings;
+uint64_t TIME = 0;
 
 #include "func.h"
-
-int random_int(int min, int max) {
-    float scale = rand() / (RAND_MAX + 1.0f);
-    return min + (int)(scale * (max - min + 1));
-}
-
-float random_float(float min, float max) {
-    return min + (max - min) * ((float)rand() / RAND_MAX);
-}
-
-#define sleep(sec) usleep((sec) * (1e6))
-#define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
-
-double TIME;
-GLuint settingsUBO;
-
-void update_shared_settings() {
-    glBindBuffer(GL_UNIFORM_BUFFER, settingsUBO);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Settings_T), Settings);
-}
+#include "settings.h"
 
 void* clock_thread(void* arg) {
     GLFWwindow* window = (GLFWwindow*)arg;

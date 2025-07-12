@@ -38,7 +38,7 @@ layout(std140, binding = 0) uniform Settings {
     float turnRandomness;
     float turnSpeed;
     float sampleAngle;
-    uint  sampleDist;
+    float  sampleDist;
     uint  debug;
 };
 
@@ -128,6 +128,7 @@ void main() {
     if (agentID >= numAgents) return;
     
     vec2 texSize = imageSize(screenTexture);
+    agents[agentID].species = agentID % numSpecies;
     uint species = agents[agentID].species;
     vec4 colour = getSpeciesColor(species);
     uint rng = pcg_state(agentID + frameNumber * 7919u);
@@ -136,12 +137,10 @@ void main() {
         float rx = pcg_next(rng, false) * float(texSize.x);
         float ry = pcg_next(rng, false) * float(texSize.y);
         float rangle = pcg_next(rng, false) * 2 * PI;
-        uint rspecies = agentID % numSpecies;
 
         agents[agentID].x = rx;
         agents[agentID].y = ry;
         agents[agentID].angle = rangle;
-        agents[agentID].species = rspecies;
         return;
     }
     
