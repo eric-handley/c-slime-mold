@@ -1,0 +1,17 @@
+n_species=5
+species_colours[0]=#FF1744
+species_colours[1]=#FFD54F
+species_colours[2]=#9C27B0
+species_colours[3]=#FF6F00
+species_colours[4]=#E91E63
+species_colours[5]=#FF9800
+species_colours[6]=#8E24AA
+species_colours[7]=#FF5722
+species_colours[8]=#AD1457
+species_colours[9]=#FFC107
+species_colours[10]=#7B1FA2
+species_colours[11]=#FF3D00
+species_colours[12]=#C2185B
+species_colours[13]=#FFB300
+species_colours[14]=#6A1B9A
+species_colours[15]=#E65100

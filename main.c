@@ -1,18 +1,11 @@
+#define LOCAL_SIZE 16 // Make sure to change in compute.comp
+#define NUM_AGENTS 50000
+#define RESOLUTION_SCALE_FACTOR 1
+
 #include "main.h"
 
 const uint TEXTURE_WIDTH  = 1920 * RESOLUTION_SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * RESOLUTION_SCALE_FACTOR;
-
-GLuint agentsBO;
-GLuint quadVAO, quadVBO;
-GLuint FBO;
-
-typedef struct Agent {
-    float x;
-    float y;
-    float angle;
-    uint32_t species;
-} Agent;
 
 void setup_quad() {
     float quadVertices[] = {
@@ -37,17 +30,18 @@ void setup_quad() {
 void setup_agents() {
     glGenBuffers(1, &agentsBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, agentsBO); 
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * Settings->n_agents, NULL, GL_DYNAMIC_DRAW); 
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Agent) * MovementSettings->n_agents, NULL, GL_DYNAMIC_DRAW); 
 }
 
 int main(int argc, char* argv[]) {
-    GLFWwindow* window = init_window(true, false);
+    GLFWwindow* window = init_window(true, true); // Fullscreen, limit to 60fps
 
-    pthread_t clock_thread_idx, input_thread_idx;
+    pthread_t clock_thread_idx;
     pthread_create(&clock_thread_idx, NULL, clock_thread, window);    
 
     glfwSetKeyCallback(window, key_callback);
     init_settings();
+    init_save_struct();
     setup_agents();
     setup_quad();
 
@@ -67,15 +61,15 @@ int main(int argc, char* argv[]) {
     uint frame_number_uniform = glGetUniformLocation(update_agents_program,   "frameNumber"  );
     uint time_uniform         = glGetUniformLocation(update_agents_program,   "time"         );
     uint frame_number = 0;
-
-    int num_groups_needed = (Settings->n_agents + 1024 - 1) / 1024; // 1024 -> threads per workgroup
+    
+    uint32_t n_work_groups = (MovementSettings->n_agents + LOCAL_SIZE - 1) / LOCAL_SIZE;  // ceiling division
 
     while(!glfwWindowShouldClose(window)) {
         int window_width, window_height;
         glfwGetFramebufferSize(window, &window_width, &window_height);
-        glGenFramebuffers(1, &FBO);
+        glGenFramebuffers(1, &frameBO);
         
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glBindFramebuffer(GL_FRAMEBUFFER, frameBO);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screen_texture, 0);
         glViewport(0, 0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         
@@ -107,8 +101,8 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, agentsBO);
         glBindImageTexture(0, screen_texture, 0, 0, 0, GL_READ_WRITE, GL_RGBA32F);
         
-        glDispatchCompute(num_groups_needed, 1, 1);
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glDispatchCompute(n_work_groups, 1, 1);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         
         
         glfwSwapBuffers(window);

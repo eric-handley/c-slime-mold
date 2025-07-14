@@ -12,53 +12,38 @@
 #include <math.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <assert.h>
+#include <string.h>
+#include <sys/stat.h>
+
+typedef enum SettingsType {
+    MOVEMENT,
+    SPECIES
+} SettingsType;
+
+void save_settings(SettingsType which, int key_pressed);
+void load_settings(SettingsType which, int key_pressed);
+
+#define sleep(sec) usleep((sec) * (1e6))
+#define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
+#define key_pressed(key) glfwGetKey(window, key) == GLFW_PRESS
+#define MAX_SPECIES 16
+
+GLuint agentsBO;
+GLuint quadVAO, quadVBO;
+GLuint frameBO;
 
 typedef GLuint uint;
 uint64_t TIME = 0;
 
-#include "func.h"
-#include "settings.h"
+typedef struct Agent {
+    float x;
+    float y;
+    float angle;
+    uint32_t species;
+} Agent;
 
-void* clock_thread(void* arg) {
-    GLFWwindow* window = (GLFWwindow*)arg;
-    clock_t t_start = clock();
-    while(!glfwWindowShouldClose(window)) {
-        clock_t t_now = clock();
-        TIME = (double)(t_now - t_start) / CLOCKS_PER_SEC;
-    }
-    return NULL;
-}
-
-GLFWwindow* init_window(bool fullscreen, bool disable_60_fps_limit) {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-
-    GLFWwindow* window;
-    if (fullscreen) {
-        window = glfwCreateWindow(1920, 1080, "OpenGL", glfwGetPrimaryMonitor(), NULL);
-    } else {
-        window = glfwCreateWindow(1000, 800, "OpenGL", NULL, NULL);
-    }
-   
-    if (window == NULL) {
-        perror("init_window()");
-        exit(1);
-    }
-    
-    glfwMakeContextCurrent(window);
-    if (disable_60_fps_limit) glfwSwapInterval(0);
-
-    glewExperimental = true;
-    glewInit();
-    
-    // Clear any GLEW initialization errors
-    while (glGetError() != GL_NO_ERROR) {}
-    
-    return window;
-}
+#include "functions.c"
+#include "settings.c"
+#include "save.c"
 
 #endif

@@ -1,13 +1,5 @@
-#ifndef GL_HELPERS_H
-#define GL_HELPERS_H
-
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-#include <stdbool.h>
-
-#define sleep(sec) usleep((sec) * (1e6))
-#define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
-#define key_pressed(key) glfwGetKey(window, key) == GLFW_PRESS
+#ifndef FUNCTIONS_H
+#define FUNCTIONS_H
 
 int random_int(int min, int max) {
     float scale = rand() / (RAND_MAX + 1.0f);
@@ -30,6 +22,37 @@ uint create_and_bind_texture(uint bind_texture_type, uint wrap_method, uint filt
     glTexParameteri(bind_texture_type, GL_TEXTURE_MAG_FILTER, filtering_method);
 
     return tex;
+}
+
+GLFWwindow* init_window(bool fullscreen, bool limit_60_fps) {
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+
+    GLFWwindow* window;
+    if (fullscreen) {
+        window = glfwCreateWindow(1920, 1080, "OpenGL", glfwGetPrimaryMonitor(), NULL);
+    } else {
+        window = glfwCreateWindow(1000, 800, "OpenGL", NULL, NULL);
+    }
+   
+    if (window == NULL) {
+        perror("init_window()");
+        exit(1);
+    }
+    
+    glfwMakeContextCurrent(window);
+    if (!limit_60_fps) glfwSwapInterval(0);
+
+    glewExperimental = true;
+    glewInit();
+    
+    // Clear any GLEW initialization errors
+    while (glGetError() != GL_NO_ERROR) {}
+    
+    return window;
 }
 
 void load_shader_file(const char* filename, uint shader_program, int shader_type) {
@@ -79,6 +102,16 @@ void load_shader_file(const char* filename, uint shader_program, int shader_type
     glDeleteShader(shader);
     free(source);
     fclose(file);
+}
+
+void* clock_thread(void* arg) {
+    GLFWwindow* window = (GLFWwindow*)arg;
+    clock_t t_start = clock();
+    while(!glfwWindowShouldClose(window)) {
+        clock_t t_now = clock();
+        TIME = (double)(t_now - t_start) / CLOCKS_PER_SEC;
+    }
+    return NULL;
 }
 
 #endif
