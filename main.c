@@ -1,6 +1,6 @@
 #define LOCAL_SIZE 16 // Make sure to change in compute.comp
 #define NUM_AGENTS 50000
-#define RESOLUTION_SCALE_FACTOR 1
+#define RESOLUTION_SCALE_FACTOR 1.25
 
 #include "main.h"
 
@@ -34,6 +34,7 @@ void setup_agents() {
 }
 
 int main(int argc, char* argv[]) {
+    srand(time(NULL));
     GLFWwindow* window = init_window(true, true); // Fullscreen, limit to 60fps
 
     pthread_t clock_thread_idx;
@@ -41,7 +42,6 @@ int main(int argc, char* argv[]) {
 
     glfwSetKeyCallback(window, key_callback);
     init_settings();
-    init_save_struct();
     setup_agents();
     setup_quad();
 
