@@ -1,6 +1,3 @@
-Note to Mar - try the presets and the randomizers, I'm not sure if the controls 
-will really make that much sense lmao.
-
 ----- CONTROLS -----
 
 I     - Randomize movement
