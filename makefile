@@ -2,14 +2,16 @@
 
 default: main run
 
+FLAGS=-lglfw3 -lglew32 -lopengl32 -lm -pthread
+
 main:
-	@gcc main.c -o run.exe -lglfw3 -lglew32 -lopengl32 -lm
+	@gcc main.c libs/mman.c -o run.exe $(FLAGS)
 
 main-strict:
-	@gcc -Wall -Werror main.c -o run.exe -lglfw3 -lglew32 -lopengl32 -lm
+	@gcc -Wall -Werror main.c libs/mman.c -o run.exe $(FLAGS)
 
 debug:
-	@gcc main.c -g -O0 -o run.exe -lglfw3 -lglew32 -lopengl32 -lm
+	@gcc main.c libs/mman.c -g -O0 -o run.exe $(FLAGS)
 
 run:
 	@./run.exe

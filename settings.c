@@ -177,15 +177,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                     
                     if (key_pressed(GLFW_KEY_LEFT_ALT)) {
                         if (key_pressed(GLFW_KEY_LEFT_SHIFT)) {
-                            save_settings(SPECIES, slot);
+                            rw_settings(SPECIES, slot, false);
                         } else {
-                            load_settings(SPECIES, slot);
+                            rw_settings(SPECIES, slot, true);
                         }
                     } else {
                         if (key_pressed(GLFW_KEY_LEFT_SHIFT)) {
-                            save_settings(MOVEMENT, slot);
+                            rw_settings(MOVEMENT, slot, false);
                         } else {
-                            load_settings(MOVEMENT, slot);
+                            rw_settings(MOVEMENT, slot, true);
                         }
                     }
                     break;  // Exit loop once we find the pressed key

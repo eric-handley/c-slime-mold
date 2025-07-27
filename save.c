@@ -2,49 +2,9 @@
 #define SAVE_H
 
 #include "main.h"
-
-typedef enum FieldType {
-    FIELD_TYPE_FLOAT,
-    FIELD_TYPE_UINT32,
-    FIELD_TYPE_UINT32_HEX,
-} FieldType;
-
-typedef struct SettingsField {
-    char* field_name;
-    FieldType type;
-    union {
-        float* float_ptr;
-        uint32_t* uint32_ptr;
-    } value;
-} SettingsField;
-
-#define N_MOVEMENT_FIELDS 5
-#define N_SPECIES_FIELDS 17
-
-SettingsField movement_fields_save[N_MOVEMENT_FIELDS];
-SettingsField species_fields_save[N_SPECIES_FIELDS];
-
-void init_save_struct() {
-    SettingsField movement_fields_tmp[] = {
-        {"speed", FIELD_TYPE_FLOAT, .value.float_ptr = &MovementSettings->speed},
-        {"turn_randomness", FIELD_TYPE_FLOAT, .value.float_ptr = &MovementSettings->turn_randomness},
-        {"turn_speed", FIELD_TYPE_FLOAT, .value.float_ptr = &MovementSettings->turn_speed},
-        {"sample_angle", FIELD_TYPE_FLOAT, .value.float_ptr = &MovementSettings->sample_angle},
-        {"sample_dist", FIELD_TYPE_FLOAT, .value.float_ptr = &MovementSettings->sample_dist},
-    };
-
-    SettingsField species_fields_tmp[17];
-    species_fields_tmp[0] = (SettingsField){"n_species", FIELD_TYPE_UINT32, .value.uint32_ptr = &SpeciesSettings->n_species};
-    
-    for_range(0, 16, i) {
-        char* string = calloc(50, sizeof(char));
-        sprintf(string, "species_colours[%d]", i);
-        species_fields_tmp[i + 1] = (SettingsField){string, FIELD_TYPE_UINT32_HEX, .value.uint32_ptr = &SpeciesSettings->species_colours[i]};
-    }
-
-    memcpy(movement_fields_save, movement_fields_tmp, sizeof(movement_fields_tmp));
-    memcpy(species_fields_save, species_fields_tmp, sizeof(species_fields_tmp));
-}
+#include "libs/mman.h"
+#include <fcntl.h>
+#include <unistd.h>
 
 #ifdef _WIN32
     #include <direct.h>
@@ -85,98 +45,49 @@ int create_directory_path(const char* path) {
     return result;
 }
 
-void save_settings_fields(SettingsField* fields, int sizeof_fields, const char* filename) {
-    int count = sizeof_fields / sizeof(SettingsField);
+int open_fd(char* filename, int size, bool file_exists) {
+    int fd = open(filename, O_RDWR | O_CREAT, 0644);
+    if (fd == -1) {
+        perror("save.c: open_fd()");
+        return fd;
+    }
     
-    // Create directory if it doesn't exist
+    // Only truncate if file doesn't exist or we're saving
+    if (!file_exists && ftruncate(fd, size) == -1) {
+        perror("save.c: ftruncate()");
+        close(fd);
+        return -1;
+    }
+    
+    return fd;
+}
+
+void rw_settings(SettingsType which, int key_pressed, bool do_load_operation) {  
+    char* type         = (which) ? "species" : "movement";
+    int sizeof_t       = (which) ? sizeof(SpeciesSettings_T) : sizeof(MovementSettings_T);
+    char* settings_ptr = (which) ? (char*)(SpeciesSettings) : (char*)(MovementSettings);
+    
+    char filename[100];
+    sprintf(filename, "save/%s/%d.%s", type, key_pressed, type);
     create_directory_path(filename);
     
-    FILE* file = fopen(filename, "w");
-    if (!file) {
-        printf("Error: Could not create/open file '%s' for writing\n", filename);
-        return;
-    }
-    
-    for (int i = 0; i < count; i++) {
-        fprintf(file, "%s=", fields[i].field_name);
-        switch (fields[i].type) {
-            case FIELD_TYPE_FLOAT:
-                fprintf(file, "%f\n", *fields[i].value.float_ptr);
-                break;
-            case FIELD_TYPE_UINT32:
-                fprintf(file, "%u\n", *fields[i].value.uint32_ptr);
-                break;
-            case FIELD_TYPE_UINT32_HEX:
-                fprintf(file, "#%06X\n", *fields[i].value.uint32_ptr);
-                break;
-        }
-    }
-    
-    fclose(file);
-}
+    bool file_exists = (access(filename, F_OK) == 0);
+    int fd = open_fd(filename, sizeof_t, file_exists);
 
-void load_settings_fields(SettingsField* fields, int sizeof_fields, const char* filename) {
-    int count = sizeof_fields / sizeof(SettingsField);
-    FILE* file = fopen(filename, "r");
-    if (!file) {
-        printf("Error: Could not open file '%s' for reading\n", filename);
-        return;
+    char* file_ptr = mmap(NULL, sizeof_t, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (file_ptr == MAP_FAILED) {
+        perror("save.c: MovementSettings_T mmap()");
+        exit(1);
     }
-    
-    char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        char* equals = strchr(line, '=');
-        if (!equals) continue;
-        
-        *equals = '\0';
-        char* field_name = line;
-        char* value_str = equals + 1;
-        
-        for (int i = 0; i < count; i++) {
-            if (strcmp(fields[i].field_name, field_name) == 0) {
-                switch (fields[i].type) {
-                    case FIELD_TYPE_FLOAT:
-                        *fields[i].value.float_ptr = strtof(value_str, NULL);
-                        break;
-                    case FIELD_TYPE_UINT32:
-                        *fields[i].value.uint32_ptr = strtoul(value_str, NULL, 10);
-                        break;
-                    case FIELD_TYPE_UINT32_HEX: // Handle different possible hex code formats
-                        char* hex_start = value_str;
-                        if (*hex_start == '#') hex_start++;
-                        *fields[i].value.uint32_ptr = strtoul(hex_start, NULL, 16);
-                        break;
-                }
-                break;
-            }
-        }
-    }
-    
-    fclose(file);
-}
 
-void save_settings(SettingsType which, int key_pressed) {
-    char filename[100];
-    char* type = (which == MOVEMENT) ? "movement" : "species";
-    sprintf(filename, "save/%s/%d.%s", type, key_pressed, type);
-
-    if (which == MOVEMENT) {
-        save_settings_fields(movement_fields_save, sizeof(movement_fields_save), filename);
+    if (do_load_operation) {
+        memcpy(settings_ptr, file_ptr, sizeof_t);
     } else {
-        save_settings_fields(species_fields_save, sizeof(species_fields_save), filename);
+        memcpy(file_ptr, settings_ptr, sizeof_t);
     }
-}
-
-void load_settings(SettingsType which, int key_pressed) {
-    char filename[100];
-    char* type = (which == MOVEMENT) ? "movement" : "species";
-    sprintf(filename, "save/%s/%d.%s", type, key_pressed, type);
-
-    if (which == MOVEMENT) {
-        load_settings_fields(movement_fields_save, sizeof(movement_fields_save), filename);
-    } else {
-        load_settings_fields(species_fields_save, sizeof(species_fields_save), filename);
-    }
+    
+    munmap(file_ptr, sizeof_t);
+    close(fd);
 }
 
 #endif

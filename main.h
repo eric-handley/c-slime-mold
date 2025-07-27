@@ -20,8 +20,7 @@ typedef enum SettingsType {
     SPECIES
 } SettingsType;
 
-void save_settings(SettingsType which, int key_pressed);
-void load_settings(SettingsType which, int key_pressed);
+void rw_settings(SettingsType which, int key_pressed, bool do_load_operation);
 
 #define sleep(sec) usleep((sec) * (1e6))
 #define for_range(start, end, iter) for (int iter = start; iter < end; iter++)
