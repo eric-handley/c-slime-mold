@@ -8,19 +8,21 @@ GLuint quadVAO, quadVBO;
 GLuint frameBO;
 uint64_t TIME = 0;
 
-const uint NUM_AGENTS = 1000000;
-const float RES_SCALE_FACTOR = 3;
+const uint NUM_AGENTS = 500000;
+const float RES_SCALE_FACTOR = 2;
 const uint TEXTURE_WIDTH  = 1920 * RES_SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * RES_SCALE_FACTOR;
 
-float mouse_x = 0.0f, mouse_y = 0.0f;
-bool mouse_pressed = false;
-bool right_mouse_pressed = false;
 float fade_factor = 0.001f;
 bool autoswap_mode = false;
 float autoswap_time_interval = 5;
 bool autotweak_mode = false;
 float autotweak_time_interval = 0.3;
+
+float mouse_x = 0.0f, mouse_y = 0.0f;
+bool mouse_pressed = false;
+bool right_mouse_pressed = false;
+
 pthread_t autoswap_thread;
 pthread_t autotweak_thread;
 bool autoswap_thread_running = false;
@@ -110,29 +112,29 @@ int main(int argc, char* argv[]) {
     setup_quad();
 
     uint update_agents_program = glCreateProgram();
-    load_shader_file("assets/shaders/compute.comp", update_agents_program , GL_COMPUTE_SHADER);
+    load_shader_file("shaders/compute.comp", update_agents_program , GL_COMPUTE_SHADER);
     glLinkProgram(update_agents_program);
 
     uint post_processing_program = glCreateProgram();
-    load_shader_file("assets/shaders/quad.vert", post_processing_program, GL_VERTEX_SHADER);
-    load_shader_file("assets/shaders/quad.frag", post_processing_program, GL_FRAGMENT_SHADER);
+    load_shader_file("shaders/quad.vert", post_processing_program, GL_VERTEX_SHADER);
+    load_shader_file("shaders/quad.frag", post_processing_program, GL_FRAGMENT_SHADER);
     glLinkProgram(post_processing_program);
 
     uint filtering = (RES_SCALE_FACTOR <= 1.0f) ? GL_NEAREST : GL_LINEAR;
     uint screen_texture = create_and_bind_texture(GL_TEXTURE_2D, GL_CLAMP_TO_EDGE, filtering);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 
-    uint texture_uniform      = glGetUniformLocation(post_processing_program, "screenTexture");
-    uint frame_number_uniform = glGetUniformLocation(update_agents_program,   "frameNumber"  );
-    uint time_uniform         = glGetUniformLocation(update_agents_program,   "time"         );
-    uint mouse_pos_uniform    = glGetUniformLocation(update_agents_program,   "mousePos"     );
-    uint mouse_pressed_uniform = glGetUniformLocation(update_agents_program,  "mousePressed" );
-    uint right_mouse_pressed_uniform = glGetUniformLocation(update_agents_program, "rightMousePressed");
-    uint fade_factor_uniform  = glGetUniformLocation(post_processing_program, "fadeFactor"   );
-    uint mouse_pos_frag_uniform = glGetUniformLocation(post_processing_program, "mousePos");
-    uint mouse_pressed_frag_uniform = glGetUniformLocation(post_processing_program, "mousePressed");
-    uint reset_circle_uniform = glGetUniformLocation(update_agents_program,   "resetToCircle");
-    uint frame_number = 0;
+    uint texture_uniform             = glGetUniformLocation(post_processing_program, "screenTexture"    );
+    uint frame_number_uniform        = glGetUniformLocation(update_agents_program,   "frameNumber"      );
+    uint time_uniform                = glGetUniformLocation(update_agents_program,   "time"             );
+    uint mouse_pos_uniform           = glGetUniformLocation(update_agents_program,   "mousePos"         );
+    uint mouse_pressed_uniform       = glGetUniformLocation(update_agents_program,   "mousePressed"     );
+    uint right_mouse_pressed_uniform = glGetUniformLocation(update_agents_program,   "rightMousePressed");
+    uint fade_factor_uniform         = glGetUniformLocation(post_processing_program, "fadeFactor"       );
+    uint mouse_pos_frag_uniform      = glGetUniformLocation(post_processing_program, "mousePos"         );
+    uint mouse_pressed_frag_uniform  = glGetUniformLocation(post_processing_program, "mousePressed"     );
+    uint reset_circle_uniform        = glGetUniformLocation(update_agents_program,   "resetToCircle"    );
+    uint frame_number                = 0;
     
     uint32_t n_work_groups = (MovementSettings->n_agents + LOCAL_SIZE - 1) / LOCAL_SIZE;
     
