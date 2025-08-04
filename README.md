@@ -8,16 +8,6 @@ This demo (quality and FPS reduced) was captured at a total resolution of 5760x3
 
 ![Slime Mold Simulation Demo](img/demo.webp)
 
-## Configuration
-
-The simulation can be configured by editing these parameters in `src/main.c`:
-
-- `NUM_AGENTS` - Number of simulated agents (default: 500,000)
-- `RES_SCALE_FACTOR` - Upscaling factor (default: x2)
-- `fade_factor` - Default amount to fade pixels by each frame
-- `autoswap_time_interval` - Seconds between auto-randomization in auto swap mode
-- `autotweak_time_interval` - Seconds between parameter tweaks in auto tweak mode
-
 ## Controls
 
 ### Basic Controls
@@ -34,7 +24,7 @@ The simulation can be configured by editing these parameters in `src/main.c`:
 | `SPACE` | Clear screen completely |
 | `ESC`   | Exit |
 
-> **Tip:** Try pressing `SPACE` and `L` at the same time
+Try pressing `SPACE` and `L` at the same time!
 
 ### Mouse Controls
 
@@ -69,6 +59,16 @@ Pressing both `RMB` and `LMB` will attract half of species and repel the other h
 
 Sample presets are included in the `data/presets/` directory
 
+## Configuration
+
+If you are building from source, the simulation can be configured by editing these parameters in `src/main.c`:
+
+- `NUM_AGENTS` - Number of simulated agents (default: 500,000)
+- `RES_SCALE_FACTOR` - Upscaling factor (default: x2)
+- `fade_factor` - Default amount to fade pixels by each frame
+- `autoswap_time_interval` - Seconds between auto-randomization in auto swap mode
+- `autotweak_time_interval` - Seconds between parameter tweaks in auto tweak mode
+
 ## Building
 
 ### Prerequisites
@@ -80,27 +80,26 @@ Sample presets are included in the `data/presets/` directory
 ## Project Structure
 
 ```
-├── src/                 - Source code (modular design)
+├── src/
 │   ├── main.c               - Main application and setup logic
 │   ├── graphics.c           - OpenGL, GLFW, windowing, shaders, timing
 │   ├── utils.c              - Random number generation utilities
 │   ├── settings.c           - Settings, save/load, input handling
-│   └── mman.c               - Memory mapping utilities
-├── include/             - Header files
+│   └── mman.c               - Memory mapping for Windows
+├── include/                 - Header files
 │   ├── main.h             
 │   ├── graphics.h         
 │   ├── utils.h            
 │   ├── settings.h         
 │   └── mman.h             
-├── assets/           
-│   └── shaders/         - OpenGL compute and rendering shaders
-│       ├── compute.comp     - Agent simulation compute shader
-│       ├── quad.frag        - Fragment shader for blur/bloom effects rendering
-│       └── quad.vert        - Vertex shader for quad rendering
+├── shaders/            
+│   ├── compute.comp         - Agent simulation compute shader
+│   ├── quad.frag            - Fragment shader for blur/bloom effects rendering
+│   └── quad.vert            - Vertex shader for quad rendering
 ├── data/            
-│   └── presets/         - User settings and presets
-│       ├── movement/        - Movement parameter presets (0-9)
-│       └── species/         - Species/color presets (0-9)
+│   └── presets/
+│       ├── movement/        - Movement parameter presets
+│       └── species/         - Species/color presets
 ├── build/
 ├── makefile               
 └── README.md              
