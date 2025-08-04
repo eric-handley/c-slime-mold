@@ -33,33 +33,39 @@ default: main run
 
 main:
 	@echo "Building for $(PLATFORM)..."
-	@gcc $(INCLUDES) $(SOURCES) -o $(EXECUTABLE) $(BUILD_FLAGS)
+	@mkdir -p build
+	@gcc $(INCLUDES) $(SOURCES) -o build/$(EXECUTABLE) $(BUILD_FLAGS)
 
 main-strict:
 	@echo "Building for $(PLATFORM) with strict warnings..."
-	@gcc -Wall -Werror $(INCLUDES) $(SOURCES) -o $(EXECUTABLE) $(BUILD_FLAGS)
+	@mkdir -p build
+	@gcc -Wall -Werror $(INCLUDES) $(SOURCES) -o build/$(EXECUTABLE) $(BUILD_FLAGS)
 
 debug:
 	@echo "Building debug version for $(PLATFORM)..."
-	@gcc $(INCLUDES) $(SOURCES) -g -O0 -o $(EXECUTABLE) $(BUILD_FLAGS)
+	@mkdir -p build
+	@gcc $(INCLUDES) $(SOURCES) -g -O0 -o build/$(EXECUTABLE) $(BUILD_FLAGS)
 
 run:
-	@./$(EXECUTABLE)
+	@./build/$(EXECUTABLE)
 
 # Linux build targets
 LINUX_FLAGS = $(shell pkg-config --libs glfw3 glew) -lGL -lm -pthread
 
 linux:
-	@gcc $(INCLUDES) $(SOURCES) -o slime-mold $(LINUX_FLAGS)
+	@mkdir -p build
+	@gcc $(INCLUDES) $(SOURCES) -o build/slime-mold $(LINUX_FLAGS)
 
 linux-strict:
-	@gcc -Wall -Werror $(INCLUDES) $(SOURCES) -o slime-mold $(LINUX_FLAGS)
+	@mkdir -p build
+	@gcc -Wall -Werror $(INCLUDES) $(SOURCES) -o build/slime-mold $(LINUX_FLAGS)
 
 linux-debug:
-	@gcc $(INCLUDES) $(SOURCES) -g -O0 -o slime-mold $(LINUX_FLAGS)
+	@mkdir -p build
+	@gcc $(INCLUDES) $(SOURCES) -g -O0 -o build/slime-mold $(LINUX_FLAGS)
 
 run-linux:
-	@./slime-mold
+	@./build/slime-mold
 
 
 # Smart package target that auto-detects platform
@@ -89,7 +95,7 @@ endif
 	@rm -rf slime-mold-v$(VERSION)-windows-x64.zip
 	@mkdir -p package_temp/bin
 	@mkdir -p package_temp/libs
-	@cp run.exe package_temp/bin/
+	@cp build/run.exe package_temp/bin/
 	@cp /clang64/bin/glfw3.dll package_temp/libs/ 2>/dev/null || echo "glfw3.dll not found"
 	@cp /clang64/bin/glew32.dll package_temp/libs/ 2>/dev/null || echo "glew32.dll not found"
 	@cp /clang64/bin/libwinpthread-1.dll package_temp/libs/ 2>/dev/null || echo "libwinpthread-1.dll not found"
@@ -111,7 +117,7 @@ package-windows-minimal: main-strict
 	@echo "Creating minimal Windows package..."
 	@rm -rf slime-mold-minimal-windows-x64.zip
 	@mkdir -p package_temp/bin
-	@cp run.exe package_temp/bin/
+	@cp build/run.exe package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
@@ -132,7 +138,7 @@ endif
 	@rm -rf slime-mold-v$(VERSION)-linux-x64.tar.gz
 	@mkdir -p package_temp/bin
 	@mkdir -p package_temp/libs
-	@cp slime-mold package_temp/bin/
+	@cp build/slime-mold package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
@@ -150,7 +156,7 @@ package-linux-minimal: linux-strict
 	@echo "Creating minimal Linux package..."
 	@rm -rf slime-mold-minimal-linux-x64.tar.gz
 	@mkdir -p package_temp/bin
-	@cp slime-mold package_temp/bin/
+	@cp build/slime-mold package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
