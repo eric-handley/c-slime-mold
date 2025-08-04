@@ -1,2 +1,5 @@
 /.vscode
-program.exe
+/build
+run.exe
+*.zip
+*.sh
