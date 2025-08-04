@@ -1,7 +1,9 @@
 #include "main.h"
 #include "settings.h"
 #include "utils.h"
+#ifdef _WIN32
 #include "../libs/mman.h"
+#endif
 
 int number_keys[] = {
     GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3, GLFW_KEY_4, GLFW_KEY_5,

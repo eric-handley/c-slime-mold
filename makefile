@@ -25,7 +25,11 @@ else
 endif
 
 # Source files
-SOURCES = src/main.c src/graphics.c src/settings.c src/utils.c libs/mman.c
+ifeq ($(UNAME_S),Linux)
+    SOURCES = src/main.c src/graphics.c src/settings.c src/utils.c
+else
+    SOURCES = src/main.c src/graphics.c src/settings.c src/utils.c libs/mman.c
+endif
 INCLUDES = -Iinclude
 
 # Auto-detect platform and build
@@ -99,8 +103,8 @@ endif
 	@cp /clang64/bin/glfw3.dll package_temp/libs/ 2>/dev/null || echo "glfw3.dll not found"
 	@cp /clang64/bin/glew32.dll package_temp/libs/ 2>/dev/null || echo "glew32.dll not found"
 	@cp /clang64/bin/libwinpthread-1.dll package_temp/libs/ 2>/dev/null || echo "libwinpthread-1.dll not found"
-	@cp /clang64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || echo "libgcc not found"
-	@cp /clang64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || echo "libstdc++ not found"
+	@cp /clang64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || cp /mingw64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || cp /ucrt64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || true
+	@cp /clang64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || cp /mingw64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || cp /ucrt64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || true
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
@@ -134,33 +138,24 @@ ifndef VERSION
 endif
 	@echo "Creating Linux package v$(VERSION)..."
 	@rm -rf slime-mold-v$(VERSION)-linux-x64.tar.gz
-	@mkdir -p package_temp/bin
-	@mkdir -p package_temp/libs
-	@cp build/slime-mold package_temp/bin/
-	@cp -r shaders/ package_temp/
-	@cp -r data/ package_temp/
-	@cp README.md package_temp/
-	@echo "#!/bin/bash" > package_temp/run.sh
-	@echo "cd \"\$$(dirname \"\$$0\")\"" >> package_temp/run.sh
-	@echo "export LD_LIBRARY_PATH=\"\$$PWD/libs:\$$LD_LIBRARY_PATH\"" >> package_temp/run.sh
-	@echo "./bin/slime-mold" >> package_temp/run.sh
-	@chmod +x package_temp/run.sh
-	@cd package_temp && tar czf ../slime-mold-v$(VERSION)-linux-x64.tar.gz .
+	@mkdir -p slime-mold-v$(VERSION)-linux-x64
+	@cp build/slime-mold slime-mold-v$(VERSION)-linux-x64/
+	@cp -r shaders/ slime-mold-v$(VERSION)-linux-x64/
+	@cp -r data/ slime-mold-v$(VERSION)-linux-x64/
+	@cp README.md slime-mold-v$(VERSION)-linux-x64/
+	@tar czf slime-mold-v$(VERSION)-linux-x64.tar.gz slime-mold-v$(VERSION)-linux-x64
+	@rm -rf slime-mold-v$(VERSION)-linux-x64
 	@rm -rf package_temp
 	@echo "Package created: slime-mold-v$(VERSION)-linux-x64.tar.gz"
 
 package-linux-minimal: linux-strict
 	@echo "Creating minimal Linux package..."
 	@rm -rf slime-mold-minimal-linux-x64.tar.gz
-	@mkdir -p package_temp/bin
-	@cp build/slime-mold package_temp/bin/
-	@cp -r shaders/ package_temp/
-	@cp -r data/ package_temp/
-	@cp README.md package_temp/
-	@echo "#!/bin/bash" > package_temp/run.sh
-	@echo "cd \"\$$(dirname \"\$$0\")\"" >> package_temp/run.sh
-	@echo "./bin/slime-mold" >> package_temp/run.sh
-	@chmod +x package_temp/run.sh
-	@cd package_temp && tar czf ../slime-mold-minimal-linux-x64.tar.gz .
-	@rm -rf package_temp
+	@mkdir -p slime-mold-minimal-linux-x64
+	@cp build/slime-mold slime-mold-minimal-linux-x64/
+	@cp -r shaders/ slime-mold-minimal-linux-x64/
+	@cp -r data/ slime-mold-minimal-linux-x64/
+	@cp README.md slime-mold-minimal-linux-x64/
+	@tar czf slime-mold-minimal-linux-x64.tar.gz slime-mold-minimal-linux-x64
+	@rm -rf slime-mold-minimal-linux-x64
 	@echo "Package created: slime-mold-minimal-linux-x64.tar.gz"
