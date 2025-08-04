@@ -96,7 +96,7 @@ endif
 	@cp /clang64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || echo "libgcc not found"
 	@cp /clang64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || echo "libstdc++ not found"
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
-	@cp -r assets/ package_temp/
+	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
 	@echo "@echo off" > package_temp/run.bat
@@ -113,7 +113,7 @@ package-windows-minimal: main-strict
 	@mkdir -p package_temp/bin
 	@cp run.exe package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
-	@cp -r assets/ package_temp/
+	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
 	@echo "@echo off" > package_temp/run.bat
@@ -134,7 +134,7 @@ endif
 	@mkdir -p package_temp/libs
 	@cp slime-mold package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
-	@cp -r assets/ package_temp/
+	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
 	@echo "#!/bin/bash" > package_temp/run.sh
@@ -152,7 +152,7 @@ package-linux-minimal: linux-strict
 	@mkdir -p package_temp/bin
 	@cp slime-mold package_temp/bin/
 	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
-	@cp -r assets/ package_temp/
+	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
 	@echo "#!/bin/bash" > package_temp/run.sh
@@ -162,4 +162,3 @@ package-linux-minimal: linux-strict
 	@cd package_temp && tar czf ../slime-mold-minimal-linux-x64.tar.gz .
 	@rm -rf package_temp
 	@echo "Package created: slime-mold-minimal-linux-x64.tar.gz"
-
