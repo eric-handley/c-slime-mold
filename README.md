@@ -2,6 +2,12 @@
 
 A real-time slime mold simulation built in C using OpenGL compute shaders.
 
+## Demo
+
+This demo was captured at a total resolution of 5760x3240, with 1,500,000 agents!
+
+![Slime Mold Simulation Demo](img/demo.webp)
+
 ## Configuration
 
 The simulation can be configured by editing these parameters in `src/main.c`:

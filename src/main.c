@@ -8,8 +8,8 @@ GLuint quadVAO, quadVBO;
 GLuint frameBO;
 uint64_t TIME = 0;
 
-const uint NUM_AGENTS = 500000;
-const float RES_SCALE_FACTOR = 2;
+const uint NUM_AGENTS = 1500000;
+const float RES_SCALE_FACTOR = 3;
 const uint TEXTURE_WIDTH  = 1920 * RES_SCALE_FACTOR;
 const uint TEXTURE_HEIGHT = 1080 * RES_SCALE_FACTOR;
 
