@@ -101,7 +101,6 @@ endif
 	@cp /clang64/bin/libwinpthread-1.dll package_temp/libs/ 2>/dev/null || echo "libwinpthread-1.dll not found"
 	@cp /clang64/bin/libgcc_s_seh-1.dll package_temp/libs/ 2>/dev/null || echo "libgcc not found"
 	@cp /clang64/bin/libstdc++-6.dll package_temp/libs/ 2>/dev/null || echo "libstdc++ not found"
-	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
@@ -118,7 +117,6 @@ package-windows-minimal: main-strict
 	@rm -rf slime-mold-minimal-windows-x64.zip
 	@mkdir -p package_temp/bin
 	@cp build/run.exe package_temp/bin/
-	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
@@ -139,7 +137,6 @@ endif
 	@mkdir -p package_temp/bin
 	@mkdir -p package_temp/libs
 	@cp build/slime-mold package_temp/bin/
-	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
@@ -157,7 +154,6 @@ package-linux-minimal: linux-strict
 	@rm -rf slime-mold-minimal-linux-x64.tar.gz
 	@mkdir -p package_temp/bin
 	@cp build/slime-mold package_temp/bin/
-	@cp -r save/ package_temp/ 2>/dev/null || echo "save folder not found"
 	@cp -r shaders/ package_temp/
 	@cp -r data/ package_temp/
 	@cp README.md package_temp/
