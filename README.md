@@ -8,16 +8,6 @@ This demo (quality and FPS reduced) was captured at a total resolution of 5760x3
 
 ![Slime Mold Simulation Demo](img/demo.webp)
 
-## Configuration
-
-The simulation can be configured by editing these parameters in `src/main.c`:
-
-- `NUM_AGENTS` - Number of simulated agents (default: 500,000)
-- `RES_SCALE_FACTOR` - Upscaling factor (default: x2)
-- `fade_factor` - Default amount to fade pixels by each frame
-- `autoswap_time_interval` - Seconds between auto-randomization in auto swap mode
-- `autotweak_time_interval` - Seconds between parameter tweaks in auto tweak mode
-
 ## Controls
 
 ### Basic Controls
@@ -68,6 +58,16 @@ Pressing both `RMB` and `LMB` will attract half of species and repel the other h
 - **`Shift + Alt + 0-9`** - Save current species/color settings to preset 0-9
 
 Sample presets are included in the `data/presets/` directory
+
+## Configuration
+
+If you are building from source, the simulation can be configured by editing these parameters in `src/main.c`:
+
+- `NUM_AGENTS` - Number of simulated agents (default: 500,000)
+- `RES_SCALE_FACTOR` - Upscaling factor (default: x2)
+- `fade_factor` - Default amount to fade pixels by each frame
+- `autoswap_time_interval` - Seconds between auto-randomization in auto swap mode
+- `autotweak_time_interval` - Seconds between parameter tweaks in auto tweak mode
 
 ## Building
 
