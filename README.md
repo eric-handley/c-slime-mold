@@ -1,6 +1,8 @@
 # C Slime Mold Simulation
 
-A real-time slime mold simulation built in C using OpenGL compute shaders.
+A real-time slime mold simulation built in C using OpenGL compute shaders. 
+
+For detailed information on this type of particle simulation, I *highly* recommend Sebastian Lague's fantastic Youtube video on the subject - **[Coding Adventure: Ant and Slime Simulations](https://youtu.be/X-iSQQgOd1A?si=SO-IQcZHcBZL7kdD)**.
 
 ## Demo
 
